@@ -6,25 +6,25 @@ cap=cv2.VideoCapture(0)
 def nothing(x):
     pass
 
-#Create trackbar to adjust HSV range
-cv2.namedWindow("trackbar")
-cv2.createTrackbar("L-H","trackbar",0,179,nothing)
-cv2.createTrackbar("L-S","trackbar",0,255,nothing)
-cv2.createTrackbar("L-V","trackbar",0,255,nothing)
-cv2.createTrackbar("U-H","trackbar",179,179,nothing)
-cv2.createTrackbar("U-S","trackbar",255,255,nothing)
-cv2.createTrackbar("U-V","trackbar",255,255,nothing)
+cv2.namedWindow("HSV Trackbar")
+cv2.createTrackbar("L-H","HSV Trackbar",0,179,nothing)
+cv2.createTrackbar("L-S","HSV Trackbar",0,255,nothing)
+cv2.createTrackbar("L-V","HSV Trackbar",0,255,nothing)
+cv2.createTrackbar("U-H","HSV Trackbar",179,179,nothing)
+cv2.createTrackbar("U-S","HSV Trackbar",255,255,nothing)
+cv2.createTrackbar("U-V","HSV Trackbar",255,255,nothing)
 
 while True:
-    ret,frame =cap.read()
+    _,frame =cap.read()
+    frame = cv2.resize(frame, (712, 400))
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) 
     
-    l_h=cv2.getTrackbarPos("L-H","trackbar")
-    l_s=cv2.getTrackbarPos("L-S","trackbar")
-    l_v=cv2.getTrackbarPos("L-V","trackbar")
-    h_h=cv2.getTrackbarPos("U-H","trackbar")
-    h_s=cv2.getTrackbarPos("U-S","trackbar")
-    h_v=cv2.getTrackbarPos("U-V","trackbar")
+    l_h=cv2.getTrackbarPos("L-H","HSV Trackbar")
+    l_s=cv2.getTrackbarPos("L-S","HSV Trackbar")
+    l_v=cv2.getTrackbarPos("L-V","HSV Trackbar")
+    h_h=cv2.getTrackbarPos("U-H","HSV Trackbar")
+    h_s=cv2.getTrackbarPos("U-S","HSV Trackbar")
+    h_v=cv2.getTrackbarPos("U-V","HSV Trackbar")
    
     low=np.array([l_h,l_s,l_v])
     high=np.array([h_h,h_s,h_v])
@@ -36,7 +36,7 @@ while True:
     key = cv2.waitKey(1)
     if key == ord('s'):
         thearray = [[l_h,l_s,l_v],[h_h, h_s, h_v]]
-        np.save('penrange',thearray)
+        np.save('marker_values',thearray)
         break
     if key == 27:
         break

@@ -4,7 +4,7 @@ import time
 
 class drawingCanvas():
     def __init__(self):
-        self.penrange = np.load('penrange.npy')
+        self.marker_values = np.load('marker_values.npy')
         self.cap = cv2.VideoCapture(0)
         self.canvas = None
         self.x1,self.y1=0,0
@@ -20,30 +20,30 @@ class drawingCanvas():
                 self.canvas = np.zeros_like(self.frame)
             
             mask=self.CreateMask()
-            contours=self.ContourDetect(mask)
+            contours=self.Contours(mask)
             self.drawLine(contours)
-            self.detect_Shape(self.canvas, self.frame)
+            self.shapes = self.ShapeDetection(self.canvas, self.frame)
             self.display()
+
             k = cv2.waitKey(1) & 0xFF
             self.takeAction(k)
             if k == 27:
                 break     
-               
 
     def CreateMask(self):
         hsv = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV) 
-        lower_range = self.penrange[0]
-        upper_range = self.penrange[1]
+        lower_range = self.marker_values[0]
+        upper_range = self.marker_values[1]
         mask = cv2.inRange(hsv, lower_range, upper_range)
         return mask
       
-    def ContourDetect(self,mask):
-        contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    def Contours(self,mask):
+        contours, h = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         return contours
     
     def drawLine(self,contours):
         if contours and cv2.contourArea(max(contours, key = cv2.contourArea)) > 100:  
-            c = max(contours, key = cv2.contourArea)    
+            c = max(contours, key = cv2.contourArea)
             x2,y2,w,h = cv2.boundingRect(c)
 
             # Find center point of the contour
@@ -61,15 +61,15 @@ class drawingCanvas():
             self.x1,self.y1 =0,0        
     
 
-    def detect_Shape(self, image, frame):
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
-        _, thresh_image = cv2.threshold(gray_image, 200, 255, cv2.THRESH_BINARY)
-        contours, h = cv2.findContours(thresh_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    def ShapeDetection(self, image, frame):
+        thresh_image = cv2.inRange(image, np.array([250, 250, 250]), np.array([255, 255, 255]))
+        thresh_image = cv2.GaussianBlur(thresh_image, (5, 5), 0)
+        contours, _ = cv2.findContours(thresh_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        result_image = np.zeros_like(image)
 
         for i, contour in enumerate(contours):
-            if i == 0:
-                continue
-            epsilon = 0.03*cv2.arcLength(contour, True)
+            epsilon = 0.06*cv2.arcLength(contour, True)
             approx = cv2.approxPolyDP(contour, epsilon, True)
 
             x, y, w, h= cv2.boundingRect(approx)
@@ -79,32 +79,18 @@ class drawingCanvas():
             colour = (255, 0, 0)
             font = cv2.FONT_HERSHEY_DUPLEX
 
-            #Examples of shapes, need to match drawing position
-
             if len(approx) == 3:
-                cv2.putText(image, "Triangle", coords, font, 1, colour, 1) 
-                p1 = (100, 200)
-                p2 = (50, 50)
-                p3 = (300, 100)
-                cv2.line(image, p1, p2, (0, 255, 0), 5)
-                cv2.line(image, p2, p3, (0, 255, 0), 5)
-                cv2.line(image, p1, p3, (0, 255, 0), 5)
-                break
+                cv2.putText(result_image, "Triangle", coords, font, 1, colour, 1) 
             elif len(approx) == 4:
-                cv2.putText(image, "Rectangle", coords, font, 1, colour, 1)
-                cv2.rectangle(image, (30, 30), (300, 200), (0, 255, 0), 5)  
-                approx = np.zeros_like(frame)
-                break
-            else:
-                cv2.putText(image, "Circle", coords, font, 1, colour, 1)
-                cv2.circle(image, (coords), 80, (0, 255, 0), 5)
-                approx = np.zeros_like(frame)
-                break
-                
+                cv2.putText(result_image, "Rectangle", coords, font, 1, colour, 1)
+        
+        return result_image
+    
     def display(self):
         self.frame = cv2.add(self.frame,self.canvas)    
         cv2.imshow('frame',self.frame)
         cv2.imshow('canvas',self.canvas)
+        cv2.imshow('shapes',self.shapes)
         
     def takeAction(self,k):
         if k == ord('c'):
